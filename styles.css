@@ -1,31 +1,56 @@
 /* =========================================================================
-   CINEMAAI - MODERN STREAMING CINEMA DESIGN SYSTEM
-   Tailwind / Modern Glassmorphism Theme for Movie Recommender System
+   CINEMAAI - ULTRA MODERN STREAMING DESIGN SYSTEM (STRUCTURED & FIXED)
    ========================================================================= */
 
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
 
-/* --- Global Reset & Background --- */
+/* --- Global Background & App Shell --- */
 .stApp {
-    background-color: #090D16 !important;
+    background-color: #070A12 !important;
     background-image: 
-        radial-gradient(at 15% 15%, rgba(99, 102, 241, 0.08) 0px, transparent 50%),
-        radial-gradient(at 85% 85%, rgba(236, 72, 153, 0.05) 0px, transparent 50%),
-        radial-gradient(at 50% 50%, rgba(15, 23, 42, 0.5) 0px, transparent 100%) !important;
+        radial-gradient(at 10% 10%, rgba(99, 102, 241, 0.12) 0px, transparent 40%),
+        radial-gradient(at 90% 90%, rgba(236, 72, 153, 0.08) 0px, transparent 40%),
+        radial-gradient(at 50% 50%, rgba(15, 23, 42, 0.6) 0px, transparent 100%) !important;
     color: #F1F5F9 !important;
-    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
 }
 
-/* Hide default Streamlit clutter */
-#MainMenu { visibility: hidden; }
-footer { visibility: hidden; }
-header { visibility: hidden; }
+/* Hide Streamlit Chrome */
+#MainMenu, footer, header { 
+    visibility: hidden; 
+    height: 0;
+}
 
-/* Main Block Width & Spacing */
+/* Main Container Constraints */
 .main .block-container {
-    max-width: 1280px !important;
-    padding-top: 1.5rem !important;
-    padding-bottom: 3.5rem !important;
+    max-width: 1320px !important;
+    padding: 1.5rem 1.5rem 3rem 1.5rem !important;
+}
+
+/* --- Streamlit Layout Alignment Fixes --- */
+div[data-testid="stHorizontalBlock"] {
+    align-items: center !important;
+    gap: 1.25rem !important;
+}
+
+/* Force image containers to respect layout rules */
+div[data-testid="stImage"] {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+/* Hard constraint on posters (Fixes the giant image bug) */
+.movie-poster-img, 
+div[data-testid="stImage"] > img {
+    max-width: 170px !important;
+    min-width: 140px !important;
+    height: 250px !important;
+    object-fit: cover !important;
+    border-radius: 14px !important;
+    box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.6) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    margin: 0 auto !important;
 }
 
 /* --- Typography --- */
@@ -34,6 +59,7 @@ h1, h2, h3, h4, h5, h6 {
     font-weight: 700 !important;
     letter-spacing: -0.02em !important;
     color: #F8FAFC !important;
+    margin-bottom: 0.25rem !important;
 }
 
 .brand-gradient {
@@ -43,78 +69,41 @@ h1, h2, h3, h4, h5, h6 {
     font-weight: 800;
 }
 
-/* --- Glassmorphic Navbar --- */
+/* --- Floating Glass Navbar --- */
 .navbar-glass {
     background: rgba(13, 18, 30, 0.75);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 18px;
-    padding: 14px 26px;
+    padding: 14px 24px;
     margin-bottom: 24px;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.4);
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
-.user-badge {
-    background: rgba(99, 102, 241, 0.15);
-    border: 1px solid rgba(99, 102, 241, 0.3);
-    color: #A5B4FC;
-    padding: 6px 14px;
-    border-radius: 9999px;
-    font-size: 13px;
-    font-weight: 600;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-}
-
-/* --- Cinema Movie Cards --- */
+/* --- Movie Card Styling --- */
 .movie-card {
-    background: linear-gradient(145deg, rgba(19, 26, 42, 0.75), rgba(12, 17, 29, 0.85));
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 18px;
-    padding: 18px;
-    margin-bottom: 16px;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    background: linear-gradient(145deg, rgba(18, 24, 38, 0.75), rgba(11, 15, 25, 0.85));
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 18px;
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.35);
+    transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
 .movie-card:hover {
-    border-color: rgba(99, 102, 241, 0.45);
-    transform: translateY(-3px);
-    box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.5), 0 0 25px -5px rgba(99, 102, 241, 0.2);
+    border-color: rgba(99, 102, 241, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 18px 35px -10px rgba(0, 0, 0, 0.5), 0 0 20px rgba(99, 102, 241, 0.15);
 }
 
-/* Poster Styling */
-.movie-poster-img {
-    border-radius: 12px;
-    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.5);
-    object-fit: cover;
-    width: 100%;
-    aspect-ratio: 2 / 3;
-    display: block;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* Badges & Chips */
-.badge-genre {
-    display: inline-block;
-    padding: 3px 9px;
-    border-radius: 6px;
-    font-size: 11px;
-    font-weight: 600;
-    margin-right: 6px;
-    margin-bottom: 4px;
-    background: rgba(99, 102, 241, 0.12);
-    color: #93C5FD;
-    border: 1px solid rgba(99, 102, 241, 0.2);
-}
-
+/* Badges & Pills */
 .badge-match {
     background: linear-gradient(135deg, #10B981, #059669);
     color: #FFFFFF;
@@ -124,58 +113,55 @@ h1, h2, h3, h4, h5, h6 {
     padding: 4px 12px;
     border-radius: 9999px;
     letter-spacing: 0.02em;
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
     display: inline-block;
 }
 
-.subscore-pill {
+.badge-genre {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 6px;
     font-size: 11px;
+    font-weight: 600;
+    margin-right: 6px;
+    background: rgba(99, 102, 241, 0.12);
+    color: #93C5FD;
+    border: 1px solid rgba(99, 102, 241, 0.2);
+}
+
+.subscore-pill {
+    font-size: 12px;
     color: #94A3B8;
     background: rgba(15, 23, 42, 0.6);
     border: 1px solid rgba(255, 255, 255, 0.06);
-    padding: 3px 8px;
-    border-radius: 6px;
-    margin-right: 6px;
+    padding: 4px 10px;
+    border-radius: 8px;
 }
 
-/* --- Dedicated Authentication Glass Card --- */
-.auth-glass-card {
-    background: linear-gradient(165deg, rgba(22, 29, 47, 0.85), rgba(12, 17, 29, 0.95));
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 24px;
-    padding: 36px 32px;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 50px rgba(99, 102, 241, 0.15);
-    margin-top: 20px;
-}
-
-/* --- Buttons --- */
+/* --- Streamlit Buttons Fix --- */
 .stButton > button {
     font-family: 'Outfit', sans-serif !important;
     font-weight: 600 !important;
     border-radius: 12px !important;
     padding: 8px 18px !important;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    transition: all 0.2s ease !important;
     border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    font-size: 14px !important;
+    font-size: 13px !important;
+    height: auto !important;
 }
 
-/* Primary Button (Gradient) */
 .stButton > button[kind="primary"] {
     background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%) !important;
     color: #FFFFFF !important;
     border: none !important;
-    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4) !important;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35) !important;
 }
 
 .stButton > button[kind="primary"]:hover {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.55) !important;
-    color: #FFFFFF !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5) !important;
 }
 
-/* Secondary Button */
 .stButton > button[kind="secondary"] {
     background: rgba(30, 41, 59, 0.6) !important;
     color: #E2E8F0 !important;
@@ -185,10 +171,19 @@ h1, h2, h3, h4, h5, h6 {
 .stButton > button[kind="secondary"]:hover {
     background: rgba(51, 65, 85, 0.8) !important;
     border-color: rgba(255, 255, 255, 0.2) !important;
-    transform: translateY(-2px) !important;
 }
 
-/* --- Form Inputs (Text, Password, Select) --- */
+/* --- Sliders Fix (Prevents Floating Away) --- */
+.stSlider {
+    padding-top: 0rem !important;
+    padding-bottom: 0.5rem !important;
+}
+
+.stSlider [data-baseweb="slider"] {
+    color: #6366F1 !important;
+}
+
+/* --- Form Inputs & Selectors --- */
 .stTextInput > div > div > input,
 .stSelectbox > div > div {
     background-color: rgba(15, 23, 42, 0.75) !important;
@@ -197,78 +192,36 @@ h1, h2, h3, h4, h5, h6 {
     border-radius: 12px !important;
     padding: 10px 14px !important;
     font-size: 14px !important;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
 }
 
 .stTextInput > div > div > input:focus,
 .stSelectbox > div > div:focus {
     border-color: #6366F1 !important;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25) !important;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2) !important;
 }
 
-/* Multi-select Pills */
-.stMultiSelect [data-baseweb="tag"] {
-    background-color: #312E81 !important;
-    color: #C7D2FE !important;
-    border-radius: 8px !important;
-    border: 1px solid rgba(99, 102, 241, 0.3) !important;
-}
-
-/* --- Modern Tabs --- */
+/* --- Modern Tabs Navigation --- */
 .stTabs [data-baseweb="tab-list"] {
-    background: rgba(15, 23, 42, 0.7) !important;
+    background: rgba(15, 23, 42, 0.6) !important;
     padding: 6px !important;
     border-radius: 16px !important;
     border: 1px solid rgba(255, 255, 255, 0.08) !important;
     gap: 6px !important;
-    margin-bottom: 24px !important;
+    margin-bottom: 20px !important;
 }
 
 .stTabs [data-baseweb="tab"] {
     font-family: 'Outfit', sans-serif !important;
     font-weight: 600 !important;
     color: #94A3B8 !important;
-    border-radius: 12px !important;
-    padding: 10px 22px !important;
+    border-radius: 10px !important;
+    padding: 8px 18px !important;
     border: none !important;
     background: transparent !important;
-    transition: all 0.2s ease !important;
-}
-
-.stTabs [data-baseweb="tab"]:hover {
-    color: #F8FAFC !important;
-    background: rgba(255, 255, 255, 0.04) !important;
 }
 
 .stTabs [aria-selected="true"] {
     background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%) !important;
     color: #FFFFFF !important;
-    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35) !important;
-}
-
-/* --- Sliders --- */
-.stSlider [data-baseweb="slider"] {
-    color: #6366F1 !important;
-}
-
-/* --- Stat Metric Boxes --- */
-.stat-card {
-    background: rgba(19, 26, 42, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 16px;
-    padding: 18px;
-    text-align: center;
-}
-
-.stat-value {
-    font-family: 'Outfit', sans-serif;
-    font-size: 28px;
-    font-weight: 700;
-    color: #60A5FA;
-}
-
-.stat-label {
-    font-size: 13px;
-    color: #94A3B8;
-    margin-top: 4px;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3) !important;
 }

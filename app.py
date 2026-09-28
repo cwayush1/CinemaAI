@@ -255,8 +255,7 @@ st.markdown('</div>', unsafe_allow_html=True)
 tabs = st.tabs([
     "🎬 Recommended For You",
     "🔍 Browse & Search Catalog",
-    "🔖 My Library & Watchlist",
-    "🧠 AI Architecture & Benchmarks"
+    "🔖 My Library & Watchlist"
 ])
 
 
@@ -516,115 +515,10 @@ with tabs[2]:
 
 
 # =========================================================================
-# TAB 4: Technical AI Architecture & Benchmarks
-# =========================================================================
-with tabs[3]:
-    st.markdown("### 🧠 AI Engine Architecture & Benchmarks")
-    st.caption("Deep NeuMF Neural Network + Matrix Factorization Hybrid Design Specs")
-
-    st.markdown("""
-    <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255, 255, 255, 0.1); padding: 22px; border-radius: 16px; margin-bottom: 24px; font-family: monospace; color: #93C5FD; overflow-x: auto; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);">
-                ┌────────────────────────────────────────┐
-                │          Inputs (Batch, ...)           │
-                ├────────────────────┬───────────────────┤
-                │ User ID (1)        │ Movie ID (1)      │ Movie Genres (19-dim)
-                └────────┬───────────┴─────────┬─────────┴──────────┬────────────┘
-                         │                     │                    │
-        ┌────────────────┴───────────────┐     │                    ▼
-        │                                │     │              Dense(32, ReLU)
-        ▼                                ▼     ▼                    │
-GMF User Embedding             GMF Movie Embeddings                 │
-     (64-dim)                       (64-dim)                        │
-        │                                │                          │
-        └───────────────┬───────────────┘                          │
-                        ▼                                           │
-              Element-wise Multiply                                 │
-                (GMF Interaction)                                   │
-                        │                                           │
-        ┌───────────────┴───────────────┐                           │
-        │                               │                           │
-        ▼                               ▼                           ▼
-MLP User Embedding             MLP Movie Embeddings ──► Concatenate Layer
-     (64-dim)                       (64-dim)                        │
-                                                                    ▼
-                                                      Dense(128, ReLU) + BN + Dropout
-                                                                    │
-                                                                    ▼
-                                                      Dense(64, ReLU) + BN + Dropout
-                                                                    │
-                                                                    ▼
-                                                      Dense(32, ReLU)
-                                                                    │
-                                                                    ▼
-                                                      ┌───────────────────────────┐
-                                                      │ NeuMF Concatenation Layer │
-                                                      └─────────────┬─────────────┘
-                                                                    │
-                                                                    ▼
-                                                       Output Rating (0.5 - 5.0)
-</div>
-    """, unsafe_allow_html=True)
-
-    c_b1, c_b2 = st.columns(2)
-    with c_b1:
-        st.markdown("##### Prediction Accuracy Comparison")
-        cf_m = summary.get("cf_metrics", {"rmse": 0.9294, "mae": 0.7168})
-        dp_m = summary.get("deep_metrics", {"rmse": 0.8510, "mae": 0.6559})
-
-        metric_df = pd.DataFrame({
-            "Metric": ["RMSE", "MAE"],
-            "Collaborative Filtering (SVD)": [cf_m["rmse"], cf_m["mae"]],
-            "Deep Neural Network (NeuMF)": [dp_m["rmse"], dp_m["mae"]]
-        }).set_index("Metric")
-
-        st.bar_chart(metric_df)
-
-    with c_b2:
-        st.markdown("##### Sparsity Stress-Test Performance")
-        if "sparsity_results" in summary:
-            sp_df = pd.DataFrame(summary["sparsity_results"])
-            st.dataframe(sp_df, use_container_width=True)
-
-            chart_data = sp_df[["sparsity_bucket", "cf_rmse", "deep_rmse"]].set_index("sparsity_bucket")
-            st.line_chart(chart_data)
-
-    st.markdown("##### 2D Latent Embedding Projection (PCA)")
-    with st.spinner("Projecting latent movie embeddings into 2D space..."):
-        movie_embeddings = deep_net.extract_movie_embeddings()
-        pca = PCA(n_components=2, random_state=42)
-        reduced = pca.fit_transform(movie_embeddings)
-
-        popular_ids = loader.ratings_df["movieId"].value_counts().head(250).index
-        sampled_rows = []
-
-        for mid in popular_ids:
-            midx = loader.movie_to_idx.get(mid)
-            if midx is not None:
-                minfo = loader.get_movie_by_id(mid)
-                primary_genre = minfo["genres"].split("|")[0] if pd.notna(minfo["genres"]) else "Other"
-                sampled_rows.append({
-                    "title": minfo["title"],
-                    "genre": primary_genre,
-                    "pca_1": reduced[midx, 0],
-                    "pca_2": reduced[midx, 1]
-                })
-
-        plot_df = pd.DataFrame(sampled_rows)
-
-    st.scatter_chart(
-        data=plot_df,
-        x="pca_1",
-        y="pca_2",
-        color="genre",
-        use_container_width=True
-    )
-
-
-# =========================================================================
 # FOOTER
 # =========================================================================
 st.markdown("""
 <div class="footer-container">
-    <p>© 2026 <strong>CinemaAI Engine</strong> — Neural Collaborative Filtering Recommender Architecture</p>
+    <p>© 2026 <strong>CinemaAI Engine</strong> — Personalized Movie Recommendations</p>
 </div>
 """, unsafe_allow_html=True)
