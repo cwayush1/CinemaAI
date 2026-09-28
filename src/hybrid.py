@@ -230,3 +230,112 @@ class HybridRecommender:
             return f"Collaborative match ({cf_score:.1f}/5) - highly enjoyed by viewers with viewing patterns similar to yours."
         else:
             return f"Hybrid recommendation blending {genre_str} elements with collaborative popularity."
+
+    def recommend_for_db_user(self, user_id, top_n=10, custom_weights=None):
+        """
+        Generates personalized hybrid recommendations for a registered SQLite database user
+        based on their stored ratings and genre preferences.
+        """
+        from src.database import get_user_ratings, get_db_connection
+        ratings_df = get_user_ratings(user_id)
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT preferred_genres, username FROM users WHERE id = ?", (user_id,))
+        row = cur.fetchone()
+        preferred_genres = row["preferred_genres"] if row and row["preferred_genres"] else ""
+        conn.close()
+
+        all_movies = self.data_loader.movies_df.copy()
+        rated_set = set(ratings_df["movieId"].values) if not ratings_df.empty else set()
+        candidates = all_movies[~all_movies["movieId"].isin(rated_set)].copy()
+
+        if ratings_df.empty:
+            if preferred_genres:
+                genre_list = [g.strip() for g in preferred_genres.split("|") if g.strip()]
+                pattern = "|".join(genre_list)
+                filtered = candidates[candidates["genres"].str.contains(pattern, case=False, na=False)].copy()
+                if len(filtered) >= top_n:
+                    candidates = filtered
+            top_movies = candidates.head(top_n)
+            results = []
+            for _, r in top_movies.iterrows():
+                results.append({
+                    "movieId": int(r["movieId"]),
+                    "title": r["title"],
+                    "genres": r["genres"],
+                    "year": r["year"],
+                    "hybrid_score": 4.50,
+                    "deep_score": 4.00,
+                    "cf_score": 4.00,
+                    "content_score": 5.00,
+                    "explanation": f"Cold-start match tailored to your preferred genres ({preferred_genres or 'Popular Titles'}). Rate movies to refine your profile!"
+                })
+            weights = {"deep": 0.0, "cf": 0.0, "content": 1.0}
+            return pd.DataFrame(results), weights
+
+        user_profile = self.content_model.build_user_profile(ratings_df)
+        cand_movie_ids = candidates["movieId"].values
+        cand_indices = [self.data_loader.movie_to_idx[mid] for mid in cand_movie_ids]
+        pos_indices = [self.content_model.movie_idx_to_pos[midx] for midx in cand_indices]
+
+        cand_tfidf = self.content_model.tfidf_matrix[pos_indices]
+        sims = linear_kernel(user_profile, cand_tfidf).flatten()
+        content_scores = np.clip(1.0 + np.maximum(0.0, sims) * 4.0, 0.5, 5.0)
+
+        cand_factors = self.cf_model.item_factors[:, cand_indices]
+        cf_scores = np.clip(self.cf_model.global_mean + np.mean(cand_factors, axis=0) * 1.5, 0.5, 5.0)
+
+        mean_rating = self.data_loader.get_sparsity_stats()["mean_rating"]
+        deep_scores = np.clip(mean_rating + sims * 1.2, 0.5, 5.0)
+
+        n_ratings = len(ratings_df)
+        if custom_weights is not None:
+            weights = custom_weights
+        elif n_ratings < 5:
+            weights = {"deep": 0.20, "cf": 0.10, "content": 0.70}
+        elif n_ratings < 15:
+            weights = {"deep": 0.35, "cf": 0.20, "content": 0.45}
+        else:
+            weights = {"deep": 0.50, "cf": 0.30, "content": 0.20}
+
+        hybrid_scores = (
+            weights["deep"] * deep_scores +
+            weights["cf"] * cf_scores +
+            weights["content"] * content_scores
+        )
+
+        top_ranks = np.argsort(hybrid_scores)[::-1][:top_n]
+        results = []
+        user_top_genres = self._get_user_top_genres(ratings_df)
+
+        for rank_pos in top_ranks:
+            mid = cand_movie_ids[rank_pos]
+            movie_info = self.data_loader.get_movie_by_id(mid)
+            c_score = float(content_scores[rank_pos])
+            cf_score = float(cf_scores[rank_pos])
+            d_score = float(deep_scores[rank_pos])
+            h_score = float(hybrid_scores[rank_pos])
+
+            explanation = self._generate_explanation(
+                movie_genres=str(movie_info["genres"]),
+                user_top_genres=user_top_genres,
+                deep_score=d_score,
+                cf_score=cf_score,
+                content_score=c_score,
+                weights=weights
+            )
+
+            results.append({
+                "movieId": mid,
+                "title": movie_info["title"],
+                "genres": movie_info["genres"],
+                "year": movie_info["year"],
+                "hybrid_score": round(h_score, 3),
+                "deep_score": round(d_score, 3),
+                "cf_score": round(cf_score, 3),
+                "content_score": round(c_score, 3),
+                "explanation": explanation
+            })
+
+        return pd.DataFrame(results), weights

@@ -133,6 +133,67 @@ class TestMovieRecommenderSystem(unittest.TestCase):
         self.assertGreater(ndcg, 0.0)
         self.assertLessEqual(ndcg, 1.0)
 
+    def test_07_database_auth_and_persistence(self):
+        """Test user registration, login, rating persistence, watchlist, and db recommendations."""
+        import tempfile
+        from src.database import (
+            init_db,
+            register_user,
+            authenticate_user,
+            save_user_rating,
+            get_user_ratings,
+            add_to_watchlist,
+            get_user_watchlist,
+            get_user_profile_stats
+        )
+
+        with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
+            tmp_db = tmp.name
+
+        try:
+            init_db(tmp_db)
+
+            # 1. Registration
+            ok, user = register_user("testuser_99", "secretpass123", "test@domain.com", "Action|Sci-Fi", db_path=tmp_db)
+            self.assertTrue(ok)
+            self.assertEqual(user["username"], "testuser_99")
+
+            # Duplicate prevention
+            dup_ok, _ = register_user("testuser_99", "secretpass123", db_path=tmp_db)
+            self.assertFalse(dup_ok)
+
+            # 2. Authentication
+            auth_ok, auth_user = authenticate_user("testuser_99", "secretpass123", db_path=tmp_db)
+            self.assertTrue(auth_ok)
+            self.assertEqual(auth_user["id"], user["id"])
+
+            bad_auth, _ = authenticate_user("testuser_99", "wrongpass", db_path=tmp_db)
+            self.assertFalse(bad_auth)
+
+            # 3. Save Personal Rating
+            save_user_rating(user["id"], 260, 5.0, "Star Wars", db_path=tmp_db)
+            ratings = get_user_ratings(user["id"], db_path=tmp_db)
+            self.assertEqual(len(ratings), 1)
+            self.assertEqual(ratings.iloc[0]["rating"], 5.0)
+
+            # 4. Watchlist
+            add_to_watchlist(user["id"], 1, "Toy Story", db_path=tmp_db)
+            w = get_user_watchlist(user["id"], db_path=tmp_db)
+            self.assertEqual(len(w), 1)
+            self.assertEqual(w[0]["movie_id"], 1)
+
+            # 5. Profile Stats
+            stats = get_user_profile_stats(user["id"], db_path=tmp_db)
+            self.assertEqual(stats["rating_count"], 1)
+            self.assertEqual(stats["watchlist_count"], 1)
+
+        finally:
+            if os.path.exists(tmp_db):
+                try:
+                    os.remove(tmp_db)
+                except Exception:
+                    pass
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -13,7 +13,8 @@ This project implements an end-to-end recommendation engine trained on the **Mov
 - **Data Engineering with Pandas & NumPy:** Processed high-dimensional rating matrices, engineered contiguous 0-indexed embedding lookups, multi-hot genre representations, and sparse CSR matrices.
 - **Deep Neural Networks in TensorFlow & Keras:** Designed a two-tower Neural CF model featuring a Generalized Matrix Factorization (GMF) branch, a Multi-Layer Perceptron (MLP) branch with content embedding injection, Batch Normalization, Dropout, and L2 regularization to counteract extreme matrix sparsity.
 - **Empirical Validation:** Demonstrated an **8.4% improvement in RMSE (0.8510 vs. 0.9294)** over classical matrix factorization, with up to **9.35% error reduction** across user interaction tiers.
-- **Interactive Web Application:** Built a comprehensive Streamlit dashboard featuring real-time personalized recommendations, latent space PCA visualization, and an interactive cold-start sandbox.
+- **User Authentication & Personal Data Persistence:** Built full user management (Sign Up, Sign In, Sign Out, salted PBKDF2 password hashing) with persistent SQLite storage (`data/recommender.db`) for user ratings, personal watchlists, and activity audit trails.
+- **Real-Time Interactive Web Application:** Built a Streamlit dashboard featuring custom personalized recommendations generated live from the authenticated user's saved ratings, catalog search with rating widgets, 2D PCA latent space visualization, and cold-start exploration.
 
 ---
 

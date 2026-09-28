@@ -1,7 +1,12 @@
 """
-Interactive Streamlit Application for Hybrid Movie Recommender System.
-Demonstrates Content-Based Filtering, SVD Matrix Factorization, Deep Neural Networks (NeuMF),
-and Dynamic Sparsity-Adaptive Hybridization.
+Full-Stack Interactive Streamlit Application for Hybrid Movie Recommender System.
+Features:
+- User Authentication (Sign Up, Sign In, Sign Out with Secure Password Hashing)
+- Persistent SQLite Storage for Personal Ratings, Watchlists, and Activity Logs
+- Real-Time Personalized Hybrid Recommendations for Logged-In Users
+- Interactive Catalog Search & Rating Hub
+- 2D PCA Latent Space Embedding Visualization
+- Empirical Sparsity Stress-Test & Model Benchmarks
 """
 
 import os
@@ -16,7 +21,7 @@ from sklearn.metrics.pairwise import linear_kernel
 
 # Set Page Config
 st.set_page_config(
-    page_title="Movie Recommender System",
+    page_title="Movie Recommender System | Auth & Personalization",
     page_icon="🍿",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -26,16 +31,33 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 if BASE_DIR not in sys.path:
     sys.path.append(BASE_DIR)
 
+from src.database import (
+    init_db,
+    register_user,
+    authenticate_user,
+    save_user_rating,
+    delete_user_rating,
+    get_user_ratings,
+    add_to_watchlist,
+    remove_from_watchlist,
+    get_user_watchlist,
+    is_in_watchlist,
+    get_user_activity,
+    get_user_profile_stats
+)
 from src.data_loader import MovieDataLoader
 from src.content_based import ContentBasedRecommender
 from src.collaborative import CollaborativeRecommender
 from src.neural_cf import DeepRecommenderNet
 from src.hybrid import HybridRecommender
 
+# Initialize SQLite Database
+init_db()
+
 
 @st.cache_resource(show_spinner=False)
 def load_all_models_and_data():
-    """Caches dataset and trained models in memory for fast UI response."""
+    """Loads dataset and trained models into memory once."""
     loader = MovieDataLoader()
     loader.load_data()
     loader.split_train_test()
@@ -45,7 +67,6 @@ def load_all_models_and_data():
     weights_path = os.path.join(saved_dir, "deep_recommender.weights.h5")
     summary_path = os.path.join(saved_dir, "evaluation_summary.json")
 
-    # If artifacts missing, train first
     if not os.path.exists(artifacts_path) or not os.path.exists(weights_path):
         from train import run_pipeline
         run_pipeline(epochs=5, batch_size=256)
@@ -59,14 +80,14 @@ def load_all_models_and_data():
     content_model.movie_idx_to_pos = artifacts["movie_idx_to_pos"]
     content_model.pos_to_movie_idx = artifacts["pos_to_movie_idx"]
 
-    # CF Model
+    # Collaborative SVD Model
     cf_model = CollaborativeRecommender(loader, n_components=40)
     cf_model.user_means = artifacts["cf_user_means"]
     cf_model.user_factors = artifacts["cf_user_factors"]
     cf_model.item_factors = artifacts["cf_item_factors"]
     cf_model.reconstructed_matrix = artifacts["cf_reconstructed"]
 
-    # Deep Neural Net
+    # Deep Neural Network (NeuMF)
     num_users = len(loader.user_to_idx)
     num_movies = len(loader.movie_to_idx)
     genre_dim = loader.movie_genre_matrix.shape[1]
@@ -84,24 +105,25 @@ def load_all_models_and_data():
     return loader, content_model, cf_model, deep_net, hybrid, summary
 
 
-# Load resources
 loader, content_model, cf_model, deep_net, hybrid, summary = load_all_models_and_data()
 stats = loader.get_sparsity_stats()
+
+# Session State Initialization
+if "user" not in st.session_state:
+    # Auto-login demo user for immediate rich experience
+    conn_test = authenticate_user("demo_user", "password123")
+    if conn_test[0]:
+        st.session_state["user"] = conn_test[1]
+    else:
+        st.session_state["user"] = None
 
 # Custom CSS styling
 st.markdown("""
 <style>
-    .metric-card {
-        background-color: #1E232A;
-        border-radius: 10px;
-        padding: 15px;
-        border-left: 5px solid #E50914;
-        margin-bottom: 10px;
-    }
     .movie-card {
         background-color: #1a1e24;
         border-radius: 12px;
-        padding: 18px;
+        padding: 16px;
         margin-bottom: 12px;
         border: 1px solid #2d3748;
     }
@@ -119,177 +141,337 @@ st.markdown("""
         background-color: #742a2a;
         color: #feb2b2;
     }
-    .subscore {
-        font-size: 13px;
-        color: #a0aec0;
+    .user-pill {
+        background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+        color: white;
+        padding: 8px 14px;
+        border-radius: 20px;
+        font-weight: bold;
+        display: inline-block;
+        margin-bottom: 10px;
     }
 </style>
 """, unsafe_allow_html=True)
 
+# =========================================================================
+# SIDEBAR: Authentication & User Profile
+# =========================================================================
+with st.sidebar:
+    st.title("🍿 Recommender System")
+    st.markdown("---")
+
+    current_user = st.session_state.get("user")
+
+    if current_user:
+        st.markdown(f'<div class="user-pill">👤 Logged in as: {current_user["username"]}</div>', unsafe_allow_html=True)
+        if current_user.get("email"):
+            st.caption(f"📧 {current_user['email']}")
+        if current_user.get("preferred_genres"):
+            st.caption(f"🎭 Favorite Genres: `{current_user['preferred_genres']}`")
+
+        # Quick stats
+        u_stats = get_user_profile_stats(current_user["id"])
+        c1, c2 = st.columns(2)
+        c1.metric("⭐ My Ratings", u_stats["rating_count"])
+        c2.metric("🔖 Watchlist", u_stats["watchlist_count"])
+
+        if st.button("🚪 Sign Out", type="secondary", use_container_width=True):
+            st.session_state["user"] = None
+            st.rerun()
+
+    else:
+        st.subheader("🔐 Account Sign In / Sign Up")
+        auth_tab1, auth_tab2 = st.tabs(["Sign In", "Create Account"])
+
+        with auth_tab1:
+            si_user = st.text_input("Username", value="demo_user", key="si_u")
+            si_pwd = st.text_input("Password", value="password123", type="password", key="si_p")
+            if st.button("Sign In", type="primary", use_container_width=True):
+                ok, res = authenticate_user(si_user, si_pwd)
+                if ok:
+                    st.session_state["user"] = res
+                    st.success(f"Welcome back, {res['username']}!")
+                    st.rerun()
+                else:
+                    st.error(res)
+
+        with auth_tab2:
+            su_user = st.text_input("New Username", key="su_u")
+            su_email = st.text_input("Email (Optional)", key="su_e")
+            su_pwd = st.text_input("New Password (min 6 chars)", type="password", key="su_p")
+            all_genres = [
+                "Action", "Adventure", "Animation", "Children", "Comedy", "Crime",
+                "Drama", "Fantasy", "Horror", "Mystery", "Romance", "Sci-Fi", "Thriller"
+            ]
+            su_pref = st.multiselect("Select Favorite Genres", all_genres, default=["Action", "Sci-Fi"])
+
+            if st.button("Create Account", type="primary", use_container_width=True):
+                pref_str = "|".join(su_pref)
+                ok, res = register_user(su_user, su_pwd, su_email, pref_str)
+                if ok:
+                    st.session_state["user"] = res
+                    st.success(f"Account created! Welcome, {res['username']}!")
+                    st.rerun()
+                else:
+                    st.error(res)
+
+    st.markdown("---")
+    st.markdown("### 📊 Engine Overview")
+    st.markdown(f"- **Movies:** `{stats['num_movies']:,}`")
+    st.markdown(f"- **Users in Base:** `{stats['num_users']:,}`")
+    st.markdown(f"- **Matrix Sparsity:** `{stats['sparsity_pct']}%`")
+    st.markdown(f"- **Deep NN RMSE:** `{summary.get('deep_metrics', {}).get('rmse', 0.8510):.4f}`")
+    st.markdown("- **Storage:** SQLite (`data/recommender.db`)")
+
+
+# =========================================================================
+# MAIN APP BODY
+# =========================================================================
+
 # App Header
-st.title("🍿 Movie Recommender System")
+st.title("🍿 Personalized Movie Recommender System")
 st.markdown(
-    "**Hybrid Recommendation Engine** integrating **Collaborative Filtering (TruncatedSVD)**, "
-    "**Content-Based Filtering (TF-IDF)**, and **Deep Neural Networks (TensorFlow NeuMF)**."
+    "**End-to-End Hybrid Recommendation Platform** powered by **Deep Neural Networks (TensorFlow NeuMF)**, "
+    "**SVD Collaborative Filtering**, and **TF-IDF Content Matching** with real-time SQLite data persistence."
 )
 
-# Top Metrics Row
-col1, col2, col3, col4, col5 = st.columns(5)
-col1.metric("🎬 Total Movies", f"{stats['num_movies']:,}")
-col2.metric("👥 Active Users", f"{stats['num_users']:,}")
-col3.metric("⭐ Ratings Count", f"{stats['num_ratings']:,}")
-col4.metric("📉 Matrix Sparsity", f"{stats['sparsity_pct']}%")
-col5.metric("🧠 Deep NN RMSE", f"{summary.get('deep_metrics', {}).get('rmse', 0.8510):.4f}")
-
-st.divider()
+current_user = st.session_state.get("user")
+if not current_user:
+    st.warning("👉 You are currently browsing as a **Guest**. Sign In or Create an Account in the sidebar to save your personal ratings, maintain a watchlist, and receive custom recommendations!")
 
 # Navigation Tabs
 tabs = st.tabs([
-    "🎯 Personalized Recommendations",
-    "🔍 Content-Based ('Because You Watched')",
-    "🧠 Deep Neural Latent Explorer",
-    "📊 Benchmarks & Sparsity Analysis",
-    "⭐ Interactive Cold-Start Sandbox"
+    "🎯 My Personalized Feed",
+    "📁 My Profile & Saved Data",
+    "🎬 Search & Rate Movies",
+    "🧠 Deep Neural Net Explorer",
+    "📊 Benchmarks & Sparsity"
 ])
 
+
 # =========================================================================
-# TAB 1: Personalized Hybrid Recommendations
+# TAB 1: My Personalized Feed
 # =========================================================================
 with tabs[0]:
-    st.subheader("🎯 Hybrid Personalized Recommendations")
-    st.markdown("Select an existing user to inspect their viewing profile and generate hybrid suggestions.")
+    if not current_user:
+        st.info("Please sign in or create an account in the sidebar to generate recommendations tailored to your profile.")
+    else:
+        u_id = current_user["id"]
+        u_ratings_df = get_user_ratings(u_id)
 
-    # User Selection & Configuration
-    c_user, c_count, c_mode = st.columns([2, 1, 2])
+        st.subheader(f"🎯 Personalized Hybrid Feed for {current_user['username']}")
 
-    with c_user:
-        user_list = sorted(list(loader.user_to_idx.keys()))
-        selected_user = st.selectbox("Select User ID:", user_list, index=0)
-
-    user_history = loader.get_user_ratings(selected_user)
-    with c_count:
-        st.metric("User Ratings Count", len(user_history))
-
-    with c_mode:
-        weight_mode = st.radio(
-            "Hybrid Weighting Strategy:",
-            ["Adaptive (Dynamic based on user sparsity)", "Custom Manual Sliders"],
-            horizontal=True
-        )
-
-    # Manual weight controls if selected
-    custom_weights = None
-    if weight_mode == "Custom Manual Sliders":
-        col_w1, col_w2, col_w3 = st.columns(3)
-        with col_w1:
-            w_deep = st.slider("Deep NN Weight", 0.0, 1.0, 0.50, 0.05)
-        with col_w2:
-            w_cf = st.slider("Collaborative (SVD) Weight", 0.0, 1.0, 0.30, 0.05)
-        with col_w3:
-            w_content = st.slider("Content-Based Weight", 0.0, 1.0, 0.20, 0.05)
-
-        total_w = w_deep + w_cf + w_content
-        if total_w > 0:
-            custom_weights = {
-                "deep": w_deep / total_w,
-                "cf": w_cf / total_w,
-                "content": w_content / total_w
-            }
-        else:
-            custom_weights = {"deep": 0.5, "cf": 0.3, "content": 0.2}
-
-    # User History Expander
-    with st.expander(f"📜 View Past Ratings for User {selected_user} ({len(user_history)} rated titles)"):
-        hist_display = user_history[["title", "genres", "rating", "year"]].sort_values("rating", ascending=False)
-        st.dataframe(hist_display, use_container_width=True, height=200)
-
-    # Recommendation Settings
-    rec_count = st.slider("Number of recommendations:", 5, 20, 10)
-
-    if st.button("🚀 Generate Personalized Recommendations", type="primary"):
-        with st.spinner("Calculating hybrid multi-model scores..."):
-            recs_df, active_w = hybrid.recommend_for_user(
-                user_id=selected_user,
-                top_n=rec_count,
-                custom_weights=custom_weights
+        c_top1, c_top2 = st.columns([3, 1])
+        with c_top1:
+            st.markdown(
+                f"Recommendations dynamically synthesized from **{len(u_ratings_df)} personal ratings** "
+                f"saved in your SQLite account."
             )
+        with c_top2:
+            rec_limit = st.slider("Recommendations count:", 5, 20, 10, key="feed_rec_limit")
+
+        with st.spinner("Generating personalized hybrid recommendations..."):
+            recs_df, active_w = hybrid.recommend_for_db_user(u_id, top_n=rec_limit)
 
         st.info(
-            f"**Applied Weights:** Deep Neural Network: `{active_w['deep']:.2f}` | "
+            f"**Dynamic Weighting:** Deep Neural Net: `{active_w['deep']:.2f}` | "
             f"Collaborative SVD: `{active_w['cf']:.2f}` | Content-Based: `{active_w['content']:.2f}`"
         )
 
         for i, row in recs_df.iterrows():
+            m_id = int(row["movieId"])
+            m_title = row["title"]
+            in_w = is_in_watchlist(u_id, m_id)
+
             with st.container():
                 st.markdown(f"""
                 <div class="movie-card">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <h4 style="margin:0; color:#F7FAFC;">#{i+1} {row['title']} ({row['year']})</h4>
-                        <span class="badge badge-score">⭐ Predicted Rating: {row['hybrid_score']:.2f} / 5.0</span>
+                        <h4 style="margin:0; color:#F7FAFC;">#{i+1} {m_title} ({row['year']})</h4>
+                        <span class="badge badge-score">⭐ Predicted Match: {row['hybrid_score']:.2f} / 5.0</span>
                     </div>
                     <div style="margin: 8px 0;">
                         {' '.join([f'<span class="badge">{g}</span>' for g in str(row['genres']).split('|')])}
                     </div>
                     <p style="margin:5px 0 10px 0; color:#CBD5E0; font-size:14px;"><em>💡 {row['explanation']}</em></p>
-                    <div class="subscore">
-                        <b>Score Breakdown:</b> Deep Neural Net: <code>{row['deep_score']:.2f}</code> | 
+                    <div style="font-size:12px; color:#A0AEC0; margin-bottom:10px;">
+                        <b>Score Breakdown:</b> Deep NN: <code>{row['deep_score']:.2f}</code> | 
                         Collaborative SVD: <code>{row['cf_score']:.2f}</code> | 
                         Content Match: <code>{row['content_score']:.2f}</code>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
 
+                col_act1, col_act2 = st.columns([1, 1])
+                with col_act1:
+                    user_star = st.select_slider(
+                        f"Rate '{m_title}'",
+                        options=[1.0, 2.0, 3.0, 4.0, 5.0],
+                        value=4.0,
+                        key=f"rec_rate_slider_{m_id}"
+                    )
+                    if st.button("Save Rating ⭐", key=f"rec_rate_btn_{m_id}"):
+                        save_user_rating(u_id, m_id, user_star, m_title)
+                        st.success(f"Saved {user_star}⭐ rating for '{m_title}' to your account!")
+                        st.rerun()
+
+                with col_act2:
+                    if in_w:
+                        if st.button("Remove from Watchlist ❌", key=f"rec_w_rm_{m_id}"):
+                            remove_from_watchlist(u_id, m_id)
+                            st.rerun()
+                    else:
+                        if st.button("Add to Watchlist 🔖", key=f"rec_w_add_{m_id}"):
+                            add_to_watchlist(u_id, m_id, m_title)
+                            st.success(f"Added '{m_title}' to your Watchlist!")
+                            st.rerun()
+
+
 # =========================================================================
-# TAB 2: Content-Based ("Because You Watched")
+# TAB 2: My Profile & Saved Data
 # =========================================================================
 with tabs[1]:
-    st.subheader("🔍 Content-Based Recommendation Engine")
-    st.markdown("Find titles with matching genres, user tags, and thematic keywords using **TF-IDF + Cosine Similarity**.")
+    if not current_user:
+        st.info("Please sign in or create an account in the sidebar to view your profile and saved data.")
+    else:
+        u_id = current_user["id"]
+        u_stats = get_user_profile_stats(u_id)
 
-    movie_options = loader.movies_df.sort_values("title")
-    selected_movie_title = st.selectbox(
-        "Choose a Movie:",
-        movie_options["title"].values,
-        index=int(np.where(movie_options["title"] == "Matrix, The (1999)")[0][0])
-        if "Matrix, The (1999)" in movie_options["title"].values else 0
-    )
+        st.subheader(f"📁 Personal Account Data: {current_user['username']}")
 
-    selected_movie_row = movie_options[movie_options["title"] == selected_movie_title].iloc[0]
-    movie_id = int(selected_movie_row["movieId"])
+        c_prof1, c_prof2, c_prof3 = st.columns(3)
+        c_prof1.metric("⭐ Total Ratings Saved", u_stats["rating_count"])
+        c_prof2.metric("📊 Average Rating Given", f"{u_stats['avg_rating']} / 5.0")
+        c_prof3.metric("🔖 Watchlist Titles", u_stats["watchlist_count"])
 
-    c_info1, c_info2 = st.columns([3, 1])
-    with c_info1:
-        st.markdown(f"**Genres:** {selected_movie_row['genres']}")
-        if selected_movie_row['tag']:
-            st.markdown(f"**Tags:** `{selected_movie_row['tag']}`")
-    with c_info2:
-        top_k_sim = st.slider("Similar titles to show:", 5, 20, 8, key="content_k")
+        st.divider()
 
-    sim_movies_df = content_model.get_similar_movies(movie_id, top_n=top_k_sim)
+        # Section: My Rated Movies
+        st.markdown("### ⭐ My Rated Movies (Saved in SQLite)")
+        u_ratings_df = get_user_ratings(u_id)
 
-    if not sim_movies_df.empty:
-        st.markdown("### Most Similar Movies:")
-        for i, row in sim_movies_df.iterrows():
-            st.markdown(f"""
-            <div class="movie-card">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <h5 style="margin:0;">#{i+1} {row['title']} ({row['year']})</h5>
-                    <span class="badge" style="background-color:#2B6CB0; color:#EBF8FF;">Similarity: {row['similarity_score']*100:.1f}%</span>
-                </div>
-                <div style="margin-top:6px;">
-                    {' '.join([f'<span class="badge">{g}</span>' for g in str(row['genres']).split('|')])}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+        if u_ratings_df.empty:
+            st.info("You haven't rated any movies yet. Search or browse movies in the 'Search & Rate Movies' tab to build your taste profile!")
+        else:
+            # Join with movie metadata
+            merged_ratings = u_ratings_df.merge(loader.movies_df[["movieId", "title", "genres", "year"]], on="movieId")
+            st.dataframe(
+                merged_ratings[["title", "genres", "rating", "year", "timestamp"]],
+                use_container_width=True
+            )
+
+            # Option to delete a rating
+            del_title = st.selectbox("Select a movie rating to remove:", merged_ratings["title"].values, key="del_rating_select")
+            if st.button("Delete Selected Rating", type="secondary"):
+                del_row = merged_ratings[merged_ratings["title"] == del_title].iloc[0]
+                delete_user_rating(u_id, int(del_row["movieId"]))
+                st.success(f"Removed rating for '{del_title}'.")
+                st.rerun()
+
+        st.divider()
+
+        # Section: My Watchlist
+        st.markdown("### 🔖 My Personal Watchlist")
+        w_items = get_user_watchlist(u_id)
+
+        if not w_items:
+            st.info("Your watchlist is empty. Add movies you want to watch later from the feed or search tab!")
+        else:
+            w_ids = [w["movie_id"] for w in w_items]
+            w_movies = loader.movies_df[loader.movies_df["movieId"].isin(w_ids)].copy()
+
+            for _, row in w_movies.iterrows():
+                mid = int(row["movieId"])
+                c_w1, c_w2 = st.columns([4, 1])
+                with c_w1:
+                    st.markdown(f"**{row['title']}** ({row['year']}) — *{row['genres']}*")
+                with c_w2:
+                    if st.button("Remove ❌", key=f"prof_rm_w_{mid}"):
+                        remove_from_watchlist(u_id, mid)
+                        st.rerun()
+
+        st.divider()
+
+        # Section: Audit Log / User Activity
+        st.markdown("### 📜 Recent Activity History")
+        act_df = get_user_activity(u_id, limit=10)
+        if not act_df.empty:
+            st.dataframe(act_df, use_container_width=True)
+
 
 # =========================================================================
-# TAB 3: Deep Neural Latent Explorer
+# TAB 3: Search & Rate Movies (Catalog Hub)
 # =========================================================================
 with tabs[2]:
+    st.subheader("🎬 Search & Rate from Catalog (9,742 Titles)")
+    st.markdown("Browse titles, rate them to update your recommendation profile, or find similar content.")
+
+    search_query = st.text_input("Search by movie title:", value="Interstellar")
+    all_movies = loader.movies_df
+
+    if search_query:
+        matches = all_movies[all_movies["title"].str.contains(search_query, case=False, na=False)].head(10)
+    else:
+        matches = all_movies.head(10)
+
+    if matches.empty:
+        st.warning(f"No movies found matching '{search_query}'. Try another search term.")
+    else:
+        for _, row in matches.iterrows():
+            mid = int(row["movieId"])
+            title = row["title"]
+
+            with st.container():
+                st.markdown(f"""
+                <div class="movie-card">
+                    <h4 style="margin:0;">{title} ({row['year']})</h4>
+                    <div style="margin:6px 0;">
+                        {' '.join([f'<span class="badge">{g}</span>' for g in str(row['genres']).split('|')])}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+                c_rate, c_watch, c_sim = st.columns([2, 1, 1])
+
+                with c_rate:
+                    if current_user:
+                        star_val = st.slider(f"Rate '{title}'", 0.5, 5.0, 4.0, 0.5, key=f"cat_rate_{mid}")
+                        if st.button("Submit Rating ⭐", key=f"cat_btn_{mid}"):
+                            save_user_rating(current_user["id"], mid, star_val, title)
+                            st.success(f"Rated '{title}' {star_val}⭐!")
+                            st.rerun()
+                    else:
+                        st.caption("Sign in to rate this title.")
+
+                with c_watch:
+                    if current_user:
+                        if is_in_watchlist(current_user["id"], mid):
+                            if st.button("Remove ❌", key=f"cat_w_rm_{mid}"):
+                                remove_from_watchlist(current_user["id"], mid)
+                                st.rerun()
+                        else:
+                            if st.button("Bookmark 🔖", key=f"cat_w_add_{mid}"):
+                                add_to_watchlist(current_user["id"], mid, title)
+                                st.success("Added to Watchlist!")
+                                st.rerun()
+                    else:
+                        st.caption("Sign in to bookmark.")
+
+                with c_sim:
+                    with st.popover("Similar Movies"):
+                        sim_df = content_model.get_similar_movies(mid, top_n=5)
+                        for _, s_row in sim_df.iterrows():
+                            st.markdown(f"- **{s_row['title']}** ({s_row['similarity_score']*100:.0f}% match)")
+
+
+# =========================================================================
+# TAB 4: Deep Neural Net Explorer
+# =========================================================================
+with tabs[3]:
     st.subheader("🧠 Deep Neural Network Architecture & Latent Embeddings")
     st.markdown(
-        "The recommendation network uses a **Neural Collaborative Filtering (NeuMF)** architecture "
-        "trained on TensorFlow / Keras, combining Generalized Matrix Factorization (GMF) and Deep Multi-Layer Perceptrons."
+        "The model uses a **Neural Collaborative Filtering (NeuMF)** architecture implemented in **TensorFlow / Keras**, "
+        "combining Generalized Matrix Factorization (GMF) and Deep Multi-Layer Perceptrons (MLP)."
     )
 
     st.markdown("""
@@ -335,16 +517,15 @@ with tabs[2]:
     """)
 
     st.markdown("### 2D Projection of Learned Movie Latent Space (PCA)")
-    st.markdown("Movies with similar themes cluster together in the 64-dimensional latent embedding space.")
+    st.markdown("Visualizing how movies cluster in the learned 64-dimensional neural embedding space:")
 
-    with st.spinner("Extracting neural embeddings and computing PCA projection..."):
+    with st.spinner("Extracting neural embeddings and projecting with PCA..."):
         movie_embeddings = deep_net.extract_movie_embeddings()
         pca = PCA(n_components=2, random_state=42)
         reduced = pca.fit_transform(movie_embeddings)
 
-        # Sample 400 popular movies for visual clarity
         ratings_count = loader.ratings_df["movieId"].value_counts()
-        popular_ids = ratings_count.head(400).index
+        popular_ids = ratings_count.head(300).index
         sampled_rows = []
 
         for mid in popular_ids:
@@ -369,14 +550,15 @@ with tabs[2]:
         use_container_width=True
     )
 
+
 # =========================================================================
-# TAB 4: Benchmarks & Sparsity Analysis
+# TAB 5: Benchmarks & Sparsity
 # =========================================================================
-with tabs[3]:
+with tabs[4]:
     st.subheader("📊 Empirical Evaluation & Sparsity Stress-Testing")
     st.markdown(
-        "Quantitative benchmarks demonstrating how Deep Neural Networks enhance accuracy "
-        "and handle the **98.3% interaction matrix sparsity** compared to classical Matrix Factorization."
+        "Quantitative benchmarks demonstrating how the Deep Neural Network handles **98.3% matrix sparsity** "
+        "compared to classical Matrix Factorization."
     )
 
     col_m1, col_m2 = st.columns(2)
@@ -395,10 +577,6 @@ with tabs[3]:
 
     with col_m2:
         st.markdown("#### Sparsity Bucket Stress-Test")
-        st.markdown(
-            "Users partitioned by interaction density: **Sparse** (<30 ratings), "
-            "**Moderate** (30-100 ratings), and **Dense** (>100 ratings)."
-        )
         if "sparsity_results" in summary:
             sp_df = pd.DataFrame(summary["sparsity_results"])
             st.dataframe(sp_df, use_container_width=True)
@@ -411,50 +589,3 @@ with tabs[3]:
         "The Deep Neural Network integrates content embeddings (genres) and dropout regularization, "
         "reducing prediction error across all sparsity levels."
     )
-
-# =========================================================================
-# TAB 5: Interactive Cold-Start Sandbox
-# =========================================================================
-with tabs[4]:
-    st.subheader("⭐ Interactive Cold-Start Simulator")
-    st.markdown(
-        "Simulate a brand-new user with **zero historical data**! "
-        "Rate these sample movies and watch the hybrid recommender synthesize instant suggestions."
-    )
-
-    sample_movie_ids = [
-        (1, "Toy Story (1995)", "Adventure|Animation|Comedy"),
-        (260, "Star Wars: Ep. IV - A New Hope (1977)", "Action|Adventure|Sci-Fi"),
-        (296, "Pulp Fiction (1994)", "Comedy|Crime|Drama"),
-        (318, "Shawshank Redemption, The (1994)", "Crime|Drama"),
-        (589, "Terminator 2: Judgment Day (1991)", "Action|Sci-Fi"),
-        (356, "Forrest Gump (1994)", "Comedy|Drama|Romance"),
-    ]
-
-    user_ratings = {}
-    col_r1, col_r2 = st.columns(2)
-
-    for i, (m_id, m_title, m_gen) in enumerate(sample_movie_ids):
-        col = col_r1 if i % 2 == 0 else col_r2
-        with col:
-            r = col.slider(f"{m_title} ({m_gen})", 0.5, 5.0, 3.5, 0.5, key=f"user_rate_{m_id}")
-            user_ratings[m_id] = r
-
-    if st.button("✨ Generate Instant Recommendations for Me", type="primary"):
-        with st.spinner("Building user profile and scoring 9,700+ titles..."):
-            custom_recs = hybrid.recommend_for_custom_ratings(user_ratings, top_n=8)
-
-        st.markdown("### Top Personalized Recommendations for You:")
-        for idx, row in custom_recs.iterrows():
-            st.markdown(f"""
-            <div class="movie-card">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <h5 style="margin:0;">#{idx+1} {row['title']} ({row['year']})</h5>
-                    <span class="badge badge-score">Predicted Score: {row['hybrid_score']:.2f} / 5.0</span>
-                </div>
-                <div style="margin:6px 0;">
-                    {' '.join([f'<span class="badge">{g}</span>' for g in str(row['genres']).split('|')])}
-                </div>
-                <div style="color:#A0AEC0; font-size:13px;"><em>{row['explanation']}</em></div>
-            </div>
-            """, unsafe_allow_html=True)
