@@ -1,11 +1,6 @@
 """
-Full-Stack Interactive Streamlit Application for CinemaAI Movie Recommender.
-Features:
-- Dedicated Full-Page Sign In / Register Portal (No sidebar cramping)
-- Decluttered, Cinema-First User Experience
-- Real-Time Hybrid Recommendations with Theatrical Movie Posters
-- Personal Watchlist & Ratings Library
-- Separate Technical AI & Benchmark Explorer
+CinemaAI Movie Recommender — Full Application (app.py)
+Redesigned with Enterprise Light UI (#F8FAFC background, Royal Blue accents, White cards).
 """
 
 import os
@@ -51,7 +46,7 @@ from src.neural_cf import DeepRecommenderNet
 from src.hybrid import HybridRecommender
 from src.poster_fetcher import get_movie_poster
 
-# Initialize database
+# Initialize SQLite database
 init_db()
 
 
@@ -107,93 +102,50 @@ def load_all_models_and_data():
 
 loader, content_model, cf_model, deep_net, hybrid, summary = load_all_models_and_data()
 
-# Session State for User Authentication
+# Session State Initialization
 if "user" not in st.session_state:
     st.session_state["user"] = None
 
 if "guest_mode" not in st.session_state:
     st.session_state["guest_mode"] = False
 
-# Sleek Custom Styling
-st.markdown("""
-<style>
-    /* Card aesthetics */
-    .movie-card {
-        background-color: #151921;
-        border-radius: 12px;
-        padding: 16px;
-        margin-bottom: 16px;
-        border: 1px solid #242c38;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
-        transition: transform 0.15s ease, border-color 0.15s ease;
-    }
-    .movie-card:hover {
-        border-color: #3b82f6;
-    }
-    .badge {
-        display: inline-block;
-        padding: 3px 8px;
-        border-radius: 6px;
-        font-size: 11px;
-        font-weight: 600;
-        margin-right: 6px;
-        background-color: #1e293b;
-        color: #93c5fd;
-    }
-    .badge-match {
-        background-color: #064e3b;
-        color: #a7f3d0;
-        font-weight: bold;
-        font-size: 12px;
-        padding: 4px 10px;
-        border-radius: 8px;
-    }
-    .auth-container {
-        background-color: #151921;
-        border-radius: 16px;
-        padding: 36px;
-        border: 1px solid #2d3748;
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
-        margin-top: 20px;
-    }
-    .top-nav {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 10px 0 16px 0;
-        border-bottom: 1px solid #242c38;
-        margin-bottom: 20px;
-    }
-</style>
-""", unsafe_allow_html=True)
+# Load external custom CSS stylesheet
+css_path = os.path.join(BASE_DIR, "styles.css")
+if os.path.exists(css_path):
+    with open(css_path, "r", encoding="utf-8") as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 
 # =========================================================================
-# VIEW 1: DEDICATED AUTHENTICATION PAGE (Sign In / Register)
+# VIEW 1: AUTHENTICATION PORTAL (Sign In / Register / Guest)
 # =========================================================================
 if st.session_state["user"] is None and not st.session_state["guest_mode"]:
-    _, col_auth, _ = st.columns([1, 2, 1])
+    _, col_auth, _ = st.columns([1, 2.2, 1])
 
     with col_auth:
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("""
-        <div style="text-align: center; margin-bottom: 20px;">
-            <h1 style="font-size: 42px; margin-bottom: 6px;">🍿 CinemaAI</h1>
-            <p style="color: #94a3b8; font-size: 16px;">
+        <div style="text-align: center; margin-bottom: 24px;">
+            <div style="display: inline-block; background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.3); padding: 14px 20px; border-radius: 50px; margin-bottom: 14px;">
+                <span style="font-size: 32px;">🍿</span>
+            </div>
+            <h1 style="font-size: 42px; margin-bottom: 8px;"><span class="brand-gradient">CinemaAI</span></h1>
+            <p style="color: #94A3B8; font-size: 15px;">
                 Discover movies you'll love with personalized hybrid AI recommendations.
             </p>
         </div>
         """, unsafe_allow_html=True)
 
-        st.markdown('<div class="auth-container">', unsafe_allow_html=True)
+        st.markdown('<div class="auth-glass-card">', unsafe_allow_html=True)
         auth_tab_sign_in, auth_tab_register = st.tabs(["🔑 Sign In", "📝 Create Account"])
 
-        # --- SIGN IN TAB ---
+        # --- SIGN IN ---
         with auth_tab_sign_in:
-            st.markdown("##### Welcome Back")
+            st.markdown("<br>", unsafe_allow_html=True)
             si_username = st.text_input("Username", key="auth_si_user", placeholder="Enter your username")
             si_password = st.text_input("Password", type="password", key="auth_si_pwd", placeholder="Enter your password")
 
+            st.markdown("<br>", unsafe_allow_html=True)
             c_btn1, c_btn2 = st.columns([1, 1])
             with c_btn1:
                 if st.button("Sign In 🚀", type="primary", use_container_width=True):
@@ -209,20 +161,20 @@ if st.session_state["user"] is None and not st.session_state["guest_mode"]:
                             st.error(res)
 
             with c_btn2:
-                if st.button("⚡ Instant Demo Login", use_container_width=True):
+                if st.button("⚡ Instant Demo Account", use_container_width=True):
                     ok, res = authenticate_user("demo_user", "password123")
                     if ok:
                         st.session_state["user"] = res
                         st.rerun()
 
-            st.caption("Tip: Click 'Instant Demo Login' to test with pre-saved movie ratings!")
+            st.caption("Tip: Use 'Instant Demo Account' to test recommendations instantly with pre-saved movie ratings!")
 
-        # --- REGISTER TAB ---
+        # --- REGISTER ---
         with auth_tab_register:
-            st.markdown("##### Create Your Personal Account")
+            st.markdown("<br>", unsafe_allow_html=True)
             su_username = st.text_input("Choose Username", key="auth_su_user", placeholder="e.g. cinephile_99")
             su_password = st.text_input("Choose Password", type="password", key="auth_su_pwd", placeholder="At least 6 characters")
-            su_email = st.text_input("Email (Optional)", key="auth_su_email", placeholder="you@example.com")
+            su_email = st.text_input("Email Address (Optional)", key="auth_su_email", placeholder="you@example.com")
 
             all_genres = [
                 "Action", "Adventure", "Animation", "Comedy", "Crime",
@@ -235,6 +187,7 @@ if st.session_state["user"] is None and not st.session_state["guest_mode"]:
                 help="We use these to personalize your recommendations from day one."
             )
 
+            st.markdown("<br>", unsafe_allow_html=True)
             if st.button("Create Account & Start 🎬", type="primary", use_container_width=True):
                 if len(su_username.strip()) < 3:
                     st.error("Username must be at least 3 characters.")
@@ -253,46 +206,56 @@ if st.session_state["user"] is None and not st.session_state["guest_mode"]:
         st.markdown('</div>', unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
-        _, c_guest, _ = st.columns([1, 2, 1])
-        with c_guest:
-            if st.button("👀 Continue as Guest (Preview Catalog)", use_container_width=True):
-                st.session_state["guest_mode"] = True
-                st.rerun()
+        if st.button("👀 Continue as Guest (Explore Catalog)", use_container_width=True):
+            st.session_state["guest_mode"] = True
+            st.rerun()
 
-    # Stop execution here so no app contents render on the auth page
     st.stop()
 
 
 # =========================================================================
-# VIEW 2: MAIN CINEMA APP (Clean, User-Focused, Movie-First)
+# VIEW 2: MAIN CINEMA APP
 # =========================================================================
 
 current_user = st.session_state.get("user")
 
 # Top Navigation Bar
+st.markdown('<div class="navbar-glass">', unsafe_allow_html=True)
 c_nav_left, c_nav_right = st.columns([3, 1])
+
 with c_nav_left:
-    st.markdown("### 🍿 CinemaAI")
+    st.markdown("""
+    <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="font-size: 28px;">🍿</span>
+        <div>
+            <h3 style="margin: 0; padding: 0; font-size: 22px;"><span class="brand-gradient">CinemaAI</span></h3>
+            <p style="margin: 0; padding: 0; font-size: 12px; color: #94A3B8;">Hybrid Neural Recommendation System</p>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
 with c_nav_right:
     if current_user:
-        c_u1, c_u2 = st.columns([2, 1])
+        c_u1, c_u2 = st.columns([1.5, 1])
         with c_u1:
-            st.markdown(f"**👤 {current_user['username']}**")
+            st.markdown(f"<div style='text-align: right; padding-top: 4px;'><span class='user-badge'>👤 {current_user['username']}</span></div>", unsafe_allow_html=True)
         with c_u2:
             if st.button("Sign Out", type="secondary", key="nav_sign_out"):
                 st.session_state["user"] = None
                 st.session_state["guest_mode"] = False
                 st.rerun()
     else:
-        if st.button("🔑 Sign In / Register", type="primary", key="nav_sign_in"):
+        if st.button("🔑 Sign In", type="primary", key="nav_sign_in"):
             st.session_state["guest_mode"] = False
             st.rerun()
 
-# Clean Navigation Tabs
+st.markdown('</div>', unsafe_allow_html=True)
+
+# Main Navigation Tabs
 tabs = st.tabs([
     "🎬 Recommended For You",
-    "🔍 Browse & Search",
-    "🔖 My Library & Ratings",
+    "🔍 Browse & Search Catalog",
+    "🔖 My Library & Watchlist",
     "🧠 AI Architecture & Benchmarks"
 ])
 
@@ -302,40 +265,39 @@ tabs = st.tabs([
 # =========================================================================
 with tabs[0]:
     if not current_user:
-        st.info("💡 You are browsing as a Guest. Sign in to save movies and get hyper-personalized recommendations tailored to your taste!")
+        st.info("💡 You are browsing as a Guest. Sign in to personalize recommendations and save movies to your watchlist!")
         user_ratings_count = 0
-        u_id = 1  # Fallback to popular sample user
+        u_id = 1
     else:
         u_id = current_user["id"]
         u_ratings_df = get_user_ratings(u_id)
         user_ratings_count = len(u_ratings_df)
 
-    st.markdown("#### Top Movies Handpicked For You")
+    st.markdown("### Top Movie Recommendations")
 
     c_filter, c_count = st.columns([3, 1])
     with c_filter:
         if current_user and current_user.get("preferred_genres"):
-            st.caption(f"Curated based on your ratings and favorite genres: `{current_user['preferred_genres']}`")
+            st.caption(f"Curated based on your preferences: `{current_user['preferred_genres']}`")
         else:
-            st.caption("Personalized using deep collaborative filtering and genre alignment.")
+            st.caption("Powered by Neural Collaborative Filtering & Content Alignment.")
     with c_count:
-        num_recs = st.select_slider("Show:", options=[6, 9, 12, 18], value=6, key="user_rec_count")
+        num_recs = st.select_slider("Display Count:", options=[6, 9, 12, 18], value=6, key="user_rec_count")
 
-    with st.spinner("Finding the best movies for you..."):
+    with st.spinner("Analyzing neural embedding patterns..."):
         if current_user:
             recs_df, _ = hybrid.recommend_for_db_user(u_id, top_n=num_recs)
         else:
             recs_df, _ = hybrid.recommend_for_user(user_id=1, top_n=num_recs)
 
     if recs_df.empty:
-        st.info("Rate a few titles in 'Browse & Search' to generate your personalized recommendations!")
+        st.warning("Rate a few titles in 'Browse & Search' to generate your personalized AI recommendations!")
     else:
         for i, row in recs_df.iterrows():
             m_id = int(row["movieId"])
             m_title = row["title"]
             genres_list = str(row["genres"]).split("|")
             in_watchlist = is_in_watchlist(u_id, m_id) if current_user else False
-
             poster_url = get_movie_poster(m_id, m_title, row["genres"])
 
             with st.container():
@@ -349,34 +311,38 @@ with tabs[0]:
                     st.markdown(f"""
                     <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                         <div>
-                            <h3 style="margin: 0; padding: 0;">{m_title} <span style="font-size: 15px; color: #64748b;">({row['year']})</span></h3>
-                            <div style="margin: 6px 0 10px 0;">
-                                {' '.join([f'<span class="badge">{g}</span>' for g in genres_list])}
+                            <h3 style="margin: 0; padding: 0; font-size: 21px;">{m_title} <span style="font-size: 15px; color: #64748B;">({row['year']})</span></h3>
+                            <div style="margin: 8px 0 12px 0;">
+                                {' '.join([f'<span class="badge-genre">{g}</span>' for g in genres_list])}
                             </div>
                         </div>
                         <span class="badge-match">⭐ {row['hybrid_score']:.1f} / 5.0 Match</span>
                     </div>
-                    <p style="color: #cbd5e1; font-size: 14px; margin-bottom: 12px;">
-                        <em>💡 {row['explanation']}</em>
+                    <p style="color: #CBD5E1; font-size: 13px; margin: 6px 0 14px 0; background: rgba(30, 41, 59, 0.45); padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.06);">
+                        💡 <strong>Why AI matched this:</strong> {row['explanation']}
                     </p>
                     """, unsafe_allow_html=True)
 
-                    c_act1, c_act2 = st.columns([2, 1])
+                    c_act1, c_act2 = st.columns([2.5, 1])
 
                     with c_act1:
                         if current_user:
-                            star = st.select_slider(
-                                f"Rate '{m_title}'",
-                                options=[1.0, 2.0, 3.0, 4.0, 5.0],
-                                value=4.0,
-                                key=f"feed_rate_{m_id}"
-                            )
-                            if st.button("Save Rating ⭐", key=f"feed_save_{m_id}"):
-                                save_user_rating(u_id, m_id, star, m_title)
-                                st.success(f"Rated {star}⭐!")
-                                st.rerun()
+                            c_sl, c_sv = st.columns([3, 1])
+                            with c_sl:
+                                star = st.select_slider(
+                                    f"Your rating for {m_title}",
+                                    options=[1.0, 2.0, 3.0, 4.0, 5.0],
+                                    value=4.0,
+                                    key=f"feed_rate_{m_id}",
+                                    label_visibility="collapsed"
+                                )
+                            with c_sv:
+                                if st.button("Save Rating ⭐", key=f"feed_save_{m_id}", type="primary"):
+                                    save_user_rating(u_id, m_id, star, m_title)
+                                    st.success(f"Saved {star}⭐")
+                                    st.rerun()
                         else:
-                            st.caption("Sign in to rate.")
+                            st.caption("Sign in to submit ratings.")
 
                     with c_act2:
                         if current_user:
@@ -399,14 +365,14 @@ with tabs[0]:
 # TAB 2: Browse & Search
 # =========================================================================
 with tabs[1]:
-    st.markdown("#### 🔍 Browse 9,700+ Movies")
+    st.markdown("### 🔍 Search & Explore Catalog")
 
     col_s1, col_s2 = st.columns([3, 1])
     with col_s1:
-        query = st.text_input("Search by title:", value="", placeholder="e.g. Inception, Dark Knight, Toy Story...")
+        query = st.text_input("Search movie title:", value="", placeholder="e.g. Inception, Dark Knight, Toy Story...")
     with col_s2:
         genre_filter = st.selectbox(
-            "Filter by Genre:",
+            "Filter Genre:",
             ["All Genres"] + loader.unique_genres
         )
 
@@ -419,9 +385,9 @@ with tabs[1]:
     results_subset = all_movies.head(8)
 
     if results_subset.empty:
-        st.warning("No movies found matching your search. Try another keyword.")
+        st.warning("No movies matched your search parameters. Try another title or genre filter.")
     else:
-        st.caption(f"Showing {len(results_subset)} matching titles")
+        st.caption(f"Showing top {len(results_subset)} matching titles")
         for _, row in results_subset.iterrows():
             mid = int(row["movieId"])
             title = row["title"]
@@ -438,19 +404,19 @@ with tabs[1]:
 
                 with cm:
                     st.markdown(f"""
-                    <h3 style="margin: 0;">{title} <span style="font-size: 15px; color: #64748b;">({row['year']})</span></h3>
-                    <div style="margin: 6px 0 10px 0;">
-                        {' '.join([f'<span class="badge">{g}</span>' for g in genres_list])}
+                    <h3 style="margin: 0; font-size: 20px;">{title} <span style="font-size: 14px; color: #64748B;">({row['year']})</span></h3>
+                    <div style="margin: 8px 0 14px 0;">
+                        {' '.join([f'<span class="badge-genre">{g}</span>' for g in genres_list])}
                     </div>
                     """, unsafe_allow_html=True)
 
                     cr1, cr2, cr3 = st.columns([2, 1, 1])
                     with cr1:
                         if current_user:
-                            user_val = st.slider(f"Rate", 0.5, 5.0, 4.0, 0.5, key=f"browse_slider_{mid}")
-                            if st.button("Submit Rating ⭐", key=f"browse_rate_{mid}"):
+                            user_val = st.slider("Rating", 0.5, 5.0, 4.0, 0.5, key=f"browse_slider_{mid}", label_visibility="collapsed")
+                            if st.button("Submit Rating ⭐", key=f"browse_rate_{mid}", type="primary"):
                                 save_user_rating(current_user["id"], mid, user_val, title)
-                                st.success(f"Saved {user_val}⭐!")
+                                st.success(f"Saved {user_val}⭐")
                                 st.rerun()
                         else:
                             st.caption("Sign in to rate.")
@@ -481,26 +447,29 @@ with tabs[1]:
 # =========================================================================
 with tabs[2]:
     if not current_user:
-        st.info("Sign in or create an account to view and manage your personal movie library.")
+        st.info("Please sign in or register to access and manage your personal ratings and watchlist.")
     else:
         u_id = current_user["id"]
         u_stats = get_user_profile_stats(u_id)
 
-        st.markdown(f"#### 📁 Personal Library: {current_user['username']}")
+        st.markdown("### 📁 Personal Movie Library")
 
         c_stat1, c_stat2, c_stat3 = st.columns(3)
-        c_stat1.metric("⭐ Movies Rated", u_stats["rating_count"])
-        c_stat2.metric("📊 Your Average Rating", f"{u_stats['avg_rating']} / 5.0")
-        c_stat3.metric("🔖 Saved in Watchlist", u_stats["watchlist_count"])
+        with c_stat1:
+            st.markdown(f'<div class="stat-card"><div class="stat-value">{u_stats["rating_count"]}</div><div class="stat-label">⭐ Movies Rated</div></div>', unsafe_allow_html=True)
+        with c_stat2:
+            st.markdown(f'<div class="stat-card"><div class="stat-value">{u_stats["avg_rating"]} / 5.0</div><div class="stat-label">📊 Average Score</div></div>', unsafe_allow_html=True)
+        with c_stat3:
+            st.markdown(f'<div class="stat-card"><div class="stat-value">{u_stats["watchlist_count"]}</div><div class="stat-label">🔖 Saved Watchlist</div></div>', unsafe_allow_html=True)
 
-        st.markdown("---")
+        st.markdown("<br>", unsafe_allow_html=True)
 
-        sub_tab1, sub_tab2 = st.tabs(["🔖 Watchlist", "⭐ Rated Movies"])
+        sub_tab1, sub_tab2 = st.tabs(["🔖 Saved Watchlist", "⭐ Rated Titles History"])
 
         with sub_tab1:
             w_items = get_user_watchlist(u_id)
             if not w_items:
-                st.info("Your watchlist is empty. Bookmark movies in 'Browse' or 'Recommended' to watch them later!")
+                st.info("Your watchlist is currently empty. Bookmark titles in the catalog to review them here.")
             else:
                 w_ids = [w["movie_id"] for w in w_items]
                 w_movies = loader.movies_df[loader.movies_df["movieId"].isin(w_ids)]
@@ -517,8 +486,8 @@ with tabs[2]:
                             st.image(poster_url, use_container_width=True)
 
                         with c_wm:
-                            st.markdown(f"**{row['title']}** ({row['year']})")
-                            st.caption(f"🎭 {row['genres']}")
+                            st.markdown(f"<h4 style='margin:0;'>{row['title']} <span style='font-size:14px; color:#64748B;'>({row['year']})</span></h4>", unsafe_allow_html=True)
+                            st.caption(f"Genres: {row['genres']}")
 
                         with c_wa:
                             if st.button("Remove ❌", key=f"lib_rm_{mid}"):
@@ -530,7 +499,7 @@ with tabs[2]:
         with sub_tab2:
             u_ratings_df = get_user_ratings(u_id)
             if u_ratings_df.empty:
-                st.info("You haven't rated any movies yet.")
+                st.info("You have not rated any movies yet.")
             else:
                 merged = u_ratings_df.merge(loader.movies_df[["movieId", "title", "genres", "year"]], on="movieId")
                 st.dataframe(
@@ -538,69 +507,67 @@ with tabs[2]:
                     use_container_width=True
                 )
 
-                del_title = st.selectbox("Remove rating for:", merged["title"].values, key="lib_del_select")
-                if st.button("Delete Rating", type="secondary"):
+                del_title = st.selectbox("Remove rating for specific title:", merged["title"].values, key="lib_del_select")
+                if st.button("Delete Rating Entry", type="secondary"):
                     del_row = merged[merged["title"] == del_title].iloc[0]
                     delete_user_rating(u_id, int(del_row["movieId"]))
-                    st.success(f"Removed rating for '{del_title}'.")
+                    st.success(f"Removed rating entry for '{del_title}'.")
                     st.rerun()
 
 
 # =========================================================================
-# TAB 4: Technical AI & Benchmarks
+# TAB 4: Technical AI Architecture & Benchmarks
 # =========================================================================
 with tabs[3]:
-    st.markdown("#### 🧠 Recommendation Engine Architecture & Benchmarks")
-    st.caption("Detailed technical specifications and empirical performance analysis.")
+    st.markdown("### 🧠 AI Engine Architecture & Benchmarks")
+    st.caption("Deep NeuMF Neural Network + Matrix Factorization Hybrid Design Specs")
 
-    # Architecture Overview
     st.markdown("""
-```
-                   ┌────────────────────────────────────────┐
-                   │           Inputs (Batch, ...)          │
-                   ├────────────────────┬───────────────────┤
-                   │ User ID (1)        │ Movie ID (1)      │ Movie Genres (19-dim)
-                   └────────┬───────────┴─────────┬─────────┴──────────┬────────────┘
-                            │                     │                    │
-            ┌───────────────┴───────────────┐     │                    ▼
-            │                               │     │               Dense(32, ReLU)
-            ▼                               ▼     ▼                    │
-    GMF User Embedding             GMF Movie Embeddings                │
-         (64-dim)                       (64-dim)                       │
-            │                               │                          │
-            └───────────────┬───────────────┘                          │
-                            ▼                                          │
-                   Element-wise Multiply                               │
-                     (GMF Interaction)                                 │
-                            │                                          │
-            ┌───────────────┴───────────────┐                          │
-            │                               │                          │
-            ▼                               ▼                          ▼
-    MLP User Embedding             MLP Movie Embeddings ──► Concatenate Layer
-         (64-dim)                       (64-dim)                       │
-                                                                       ▼
-                                                          Dense(128, ReLU) + BN + Dropout
-                                                                       │
-                                                                       ▼
-                                                          Dense(64, ReLU) + BN + Dropout
-                                                                       │
-                                                                       ▼
-                                                          Dense(32, ReLU)
-                                                                       │
-                                                                       ▼
-                                                         ┌───────────────────────────┐
-                                                         │ NeuMF Concatenation Layer │
-                                                         └─────────────┬─────────────┘
-                                                                       ▼
-                                                           Output Rating (0.5 - 5.0)
-```
-    """)
-
-    st.markdown("---")
+    <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255, 255, 255, 0.1); padding: 22px; border-radius: 16px; margin-bottom: 24px; font-family: monospace; color: #93C5FD; overflow-x: auto; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);">
+                ┌────────────────────────────────────────┐
+                │          Inputs (Batch, ...)           │
+                ├────────────────────┬───────────────────┤
+                │ User ID (1)        │ Movie ID (1)      │ Movie Genres (19-dim)
+                └────────┬───────────┴─────────┬─────────┴──────────┬────────────┘
+                         │                     │                    │
+        ┌────────────────┴───────────────┐     │                    ▼
+        │                                │     │              Dense(32, ReLU)
+        ▼                                ▼     ▼                    │
+GMF User Embedding             GMF Movie Embeddings                 │
+     (64-dim)                       (64-dim)                        │
+        │                                │                          │
+        └───────────────┬───────────────┘                          │
+                        ▼                                           │
+              Element-wise Multiply                                 │
+                (GMF Interaction)                                   │
+                        │                                           │
+        ┌───────────────┴───────────────┐                           │
+        │                               │                           │
+        ▼                               ▼                           ▼
+MLP User Embedding             MLP Movie Embeddings ──► Concatenate Layer
+     (64-dim)                       (64-dim)                        │
+                                                                    ▼
+                                                      Dense(128, ReLU) + BN + Dropout
+                                                                    │
+                                                                    ▼
+                                                      Dense(64, ReLU) + BN + Dropout
+                                                                    │
+                                                                    ▼
+                                                      Dense(32, ReLU)
+                                                                    │
+                                                                    ▼
+                                                      ┌───────────────────────────┐
+                                                      │ NeuMF Concatenation Layer │
+                                                      └─────────────┬─────────────┘
+                                                                    │
+                                                                    ▼
+                                                       Output Rating (0.5 - 5.0)
+</div>
+    """, unsafe_allow_html=True)
 
     c_b1, c_b2 = st.columns(2)
     with c_b1:
-        st.markdown("##### Prediction Accuracy (Lower is Better)")
+        st.markdown("##### Prediction Accuracy Comparison")
         cf_m = summary.get("cf_metrics", {"rmse": 0.9294, "mae": 0.7168})
         dp_m = summary.get("deep_metrics", {"rmse": 0.8510, "mae": 0.6559})
 
@@ -613,7 +580,7 @@ with tabs[3]:
         st.bar_chart(metric_df)
 
     with c_b2:
-        st.markdown("##### Sparsity Stress-Test (How Deep NN Handles Sparse Data)")
+        st.markdown("##### Sparsity Stress-Test Performance")
         if "sparsity_results" in summary:
             sp_df = pd.DataFrame(summary["sparsity_results"])
             st.dataframe(sp_df, use_container_width=True)
@@ -621,8 +588,8 @@ with tabs[3]:
             chart_data = sp_df[["sparsity_bucket", "cf_rmse", "deep_rmse"]].set_index("sparsity_bucket")
             st.line_chart(chart_data)
 
-    st.markdown("##### 2D Latent Embedding Space (PCA)")
-    with st.spinner("Projecting latent movie embeddings..."):
+    st.markdown("##### 2D Latent Embedding Projection (PCA)")
+    with st.spinner("Projecting latent movie embeddings into 2D space..."):
         movie_embeddings = deep_net.extract_movie_embeddings()
         pca = PCA(n_components=2, random_state=42)
         reduced = pca.fit_transform(movie_embeddings)
@@ -651,3 +618,13 @@ with tabs[3]:
         color="genre",
         use_container_width=True
     )
+
+
+# =========================================================================
+# FOOTER
+# =========================================================================
+st.markdown("""
+<div class="footer-container">
+    <p>© 2026 <strong>CinemaAI Engine</strong> — Neural Collaborative Filtering Recommender Architecture</p>
+</div>
+""", unsafe_allow_html=True)
