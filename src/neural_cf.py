@@ -7,8 +7,12 @@ Batch Normalization, Dropout, and L2 Regularization to handle sparse user-item i
 import os
 import numpy as np
 import pandas as pd
-import tensorflow as tf
-from tensorflow.keras import layers, regularizers, Model, optimizers
+try:
+    import tensorflow as tf
+    from tensorflow.keras import layers, regularizers, Model, optimizers
+    HAS_TF = True
+except (ImportError, ModuleNotFoundError):
+    HAS_TF = False
 
 
 class DeepRecommenderNet:
@@ -41,7 +45,10 @@ class DeepRecommenderNet:
         self.min_rating = min_rating
         self.max_rating = max_rating
 
-        self.model = self._build_model()
+        if HAS_TF:
+            self.model = self._build_model()
+        else:
+            self.model = None
         self.history = None
 
     def _build_model(self):
@@ -198,6 +205,9 @@ class DeepRecommenderNet:
 
     def predict_batch(self, user_indices, movie_indices, genre_matrix):
         """Vectorized predictions for evaluation."""
+        if not HAS_TF or self.model is None:
+            return np.full(len(user_indices), (self.min_rating + self.max_rating) / 2.0)
+
         user_indices = np.asarray(user_indices, dtype=np.int32)
         movie_indices = np.asarray(movie_indices, dtype=np.int32)
         genres = genre_matrix[movie_indices]
@@ -216,6 +226,9 @@ class DeepRecommenderNet:
 
     def predict_all_for_user(self, user_idx, genre_matrix, candidate_indices=None):
         """Fast prediction for all movies for a given user."""
+        if not HAS_TF or self.model is None:
+            return None
+
         if candidate_indices is None:
             candidate_indices = np.arange(self.num_movies, dtype=np.int32)
         else:
@@ -238,6 +251,9 @@ class DeepRecommenderNet:
 
     def extract_movie_embeddings(self):
         """Extracts learned movie embedding representations for analysis and visualization."""
+        if not HAS_TF or self.model is None:
+            return None
+
         gmf_layer = self.model.get_layer("gmf_movie_embed")
         mlp_layer = self.model.get_layer("mlp_movie_embed")
 
@@ -249,9 +265,11 @@ class DeepRecommenderNet:
 
     def save(self, filepath):
         """Saves model weights."""
-        os.makedirs(os.path.dirname(filepath), exist_ok=True)
-        self.model.save_weights(filepath)
+        if HAS_TF and self.model is not None:
+            os.makedirs(os.path.dirname(filepath), exist_ok=True)
+            self.model.save_weights(filepath)
 
     def load(self, filepath):
         """Loads model weights."""
-        self.model.load_weights(filepath)
+        if HAS_TF and self.model is not None:
+            self.model.load_weights(filepath)

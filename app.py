@@ -213,7 +213,7 @@ from src.database import (
 from src.data_loader import MovieDataLoader
 from src.content_based import ContentBasedRecommender
 from src.collaborative import CollaborativeRecommender
-from src.neural_cf import DeepRecommenderNet
+from src.neural_cf import DeepRecommenderNet, HAS_TF
 from src.hybrid import HybridRecommender
 from src.poster_fetcher import get_movie_poster
 
@@ -251,8 +251,13 @@ def load_all_models_and_data():
     num_movies = len(loader.movie_to_idx)
     genre_dim = loader.movie_genre_matrix.shape[1]
 
-    deep_net = DeepRecommenderNet(num_users, num_movies, genre_dim, embedding_dim=32)
-    deep_net.load(weights_path)
+    deep_net = None
+    if HAS_TF and os.path.exists(weights_path):
+        try:
+            deep_net = DeepRecommenderNet(num_users, num_movies, genre_dim, embedding_dim=32)
+            deep_net.load(weights_path)
+        except Exception:
+            deep_net = None
 
     hybrid = HybridRecommender(loader, content_model, cf_model, deep_net)
     

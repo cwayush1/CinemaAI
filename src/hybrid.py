@@ -98,12 +98,14 @@ class HybridRecommender:
             cf_scores = np.full(len(candidate_movies), self.data_loader.get_sparsity_stats()["mean_rating"])
 
         # 2. Deep Neural Net Scores
-        if self.deep_model is not None and u_idx is not None:
+        if self.deep_model is not None and getattr(self.deep_model, "model", None) is not None and u_idx is not None:
             deep_scores = self.deep_model.predict_all_for_user(
                 u_idx,
                 self.data_loader.movie_genre_matrix,
                 candidate_indices=candidate_indices
             )
+            if deep_scores is None:
+                deep_scores = cf_scores.copy()
         else:
             deep_scores = cf_scores.copy()
 
