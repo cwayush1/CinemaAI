@@ -82,6 +82,16 @@ def init_db(db_path=DEFAULT_DB_PATH):
         )
     """)
 
+    # Persistent User Sessions Table (persists login across page reloads/F5)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS user_sessions (
+            session_token TEXT PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    """)
+
     conn.commit()
 
     # Check if a demo user exists, if not create one for instant testing
@@ -89,6 +99,55 @@ def init_db(db_path=DEFAULT_DB_PATH):
     if not cur.fetchone():
         _create_demo_user(conn)
 
+    conn.close()
+
+
+def create_user_session(user_id, db_path=DEFAULT_DB_PATH):
+    """Creates a persistent session token for user_id."""
+    token = secrets.token_urlsafe(32)
+    conn = get_db_connection(db_path)
+    cur = conn.cursor()
+    cur.execute(
+        "INSERT INTO user_sessions (session_token, user_id) VALUES (?, ?)",
+        (token, user_id)
+    )
+    conn.commit()
+    conn.close()
+    return token
+
+
+def get_user_by_session_token(token, db_path=DEFAULT_DB_PATH):
+    """Retrieves user info using a session token. Returns user dict or None."""
+    if not token:
+        return None
+    conn = get_db_connection(db_path)
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT u.id, u.username, u.email, u.preferred_genres
+        FROM users u
+        INNER JOIN user_sessions s ON u.id = s.user_id
+        WHERE s.session_token = ?
+    """, (token,))
+    row = cur.fetchone()
+    conn.close()
+    if row:
+        return {
+            "id": row["id"],
+            "username": row["username"],
+            "email": row["email"],
+            "preferred_genres": row["preferred_genres"]
+        }
+    return None
+
+
+def delete_user_session(token, db_path=DEFAULT_DB_PATH):
+    """Deletes a session token on sign out."""
+    if not token:
+        return
+    conn = get_db_connection(db_path)
+    cur = conn.cursor()
+    cur.execute("DELETE FROM user_sessions WHERE session_token = ?", (token,))
+    conn.commit()
     conn.close()
 
 

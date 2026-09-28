@@ -1,18 +1,15 @@
 /* =========================================================================
-   CINEMAAI - ULTRA MODERN STREAMING DESIGN SYSTEM (STRUCTURED & FIXED)
+   CINEMAAI - ENTERPRISE LIGHT UI
+   Clean, Professional, Royal Blue Accents & Crisp White Cards
    ========================================================================= */
 
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 /* --- Global Background & App Shell --- */
 .stApp {
-    background-color: #070A12 !important;
-    background-image: 
-        radial-gradient(at 10% 10%, rgba(99, 102, 241, 0.12) 0px, transparent 40%),
-        radial-gradient(at 90% 90%, rgba(236, 72, 153, 0.08) 0px, transparent 40%),
-        radial-gradient(at 50% 50%, rgba(15, 23, 42, 0.6) 0px, transparent 100%) !important;
-    color: #F1F5F9 !important;
-    font-family: 'Plus Jakarta Sans', sans-serif !important;
+    background-color: #F8FAFC !important; /* Soft Slate 50 background */
+    color: #0F172A !important;            /* Deep Slate 900 text */
+    font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
 }
 
 /* Hide Streamlit Chrome */
@@ -23,14 +20,14 @@
 
 /* Main Container Constraints */
 .main .block-container {
-    max-width: 1320px !important;
-    padding: 1.5rem 1.5rem 3rem 1.5rem !important;
+    max-width: 1200px !important;
+    padding: 2rem 2rem 4rem 2rem !important;
 }
 
 /* --- Streamlit Layout Alignment Fixes --- */
 div[data-testid="stHorizontalBlock"] {
     align-items: center !important;
-    gap: 1.25rem !important;
+    gap: 1.5rem !important;
 }
 
 /* Force image containers to respect layout rules */
@@ -41,187 +38,315 @@ div[data-testid="stImage"] {
 }
 
 /* Hard constraint on posters (Fixes the giant image bug) */
-.movie-poster-img, 
 div[data-testid="stImage"] > img {
-    max-width: 170px !important;
+    max-width: 160px !important;
     min-width: 140px !important;
-    height: 250px !important;
+    height: 240px !important;
     object-fit: cover !important;
-    border-radius: 14px !important;
-    box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.6) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 10px !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+    border: 1px solid #E2E8F0 !important;
     margin: 0 auto !important;
 }
 
 /* --- Typography --- */
 h1, h2, h3, h4, h5, h6 {
-    font-family: 'Outfit', sans-serif !important;
     font-weight: 700 !important;
-    letter-spacing: -0.02em !important;
-    color: #F8FAFC !important;
+    letter-spacing: -0.025em !important;
+    color: #0F172A !important;
     margin-bottom: 0.25rem !important;
 }
 
-.brand-gradient {
-    background: linear-gradient(135deg, #60A5FA 0%, #A855F7 50%, #EC4899 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+.brand-text {
+    color: #2563EB; /* Royal Blue */
     font-weight: 800;
 }
 
-/* --- Floating Glass Navbar --- */
-.navbar-glass {
-    background: rgba(13, 18, 30, 0.75);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 18px;
-    padding: 14px 24px;
+/* --- Header & Auth --- */
+.auth-header {
+    text-align: center;
     margin-bottom: 24px;
-    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.4);
+}
+.logo-circle {
+    display: inline-block;
+    background: #EFF6FF;
+    border: 1px solid #BFDBFE;
+    padding: 16px 22px;
+    border-radius: 50px;
+    margin-bottom: 16px;
+    font-size: 32px;
+}
+.auth-header p {
+    color: #64748B;
+    font-size: 16px;
+}
+.auth-card {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+}
+
+/* --- Navigation Bar --- */
+.navbar {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 16px;
+    padding: 16px 24px;
+    margin-bottom: 32px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
+.nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+.nav-logo {
+    font-size: 32px;
+}
+.nav-brand h3 {
+    margin: 0; padding: 0; font-size: 24px;
+}
+.nav-brand p {
+    margin: 0; padding: 0; font-size: 13px; color: #64748B; font-weight: 500;
+}
+.user-badge-container {
+    text-align: right;
+    padding-top: 6px;
+}
+.user-badge {
+    background: #F1F5F9;
+    color: #334155;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    border: 1px solid #E2E8F0;
+}
 
 /* --- Movie Card Styling --- */
 .movie-card {
-    background: linear-gradient(145deg, rgba(18, 24, 38, 0.75), rgba(11, 15, 25, 0.85));
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.07);
-    border-radius: 20px;
-    padding: 20px;
-    margin-bottom: 18px;
-    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.35);
-    transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
-
 .movie-card:hover {
-    border-color: rgba(99, 102, 241, 0.4);
+    border-color: #CBD5E1;
     transform: translateY(-2px);
-    box-shadow: 0 18px 35px -10px rgba(0, 0, 0, 0.5), 0 0 20px rgba(99, 102, 241, 0.15);
+    box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.08);
+}
+.movie-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+.movie-title {
+    margin: 0; padding: 0; font-size: 22px;
+}
+.movie-year {
+    font-size: 16px; color: #64748B; font-weight: 500;
+}
+.genre-container {
+    margin: 10px 0 16px 0;
+}
+.ai-explanation {
+    color: #475569;
+    font-size: 14px;
+    margin: 12px 0 20px 0;
+    background: #F8FAFC;
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid #E2E8F0;
 }
 
-/* Badges & Pills */
+/* Badges */
 .badge-match {
-    background: linear-gradient(135deg, #10B981, #059669);
-    color: #FFFFFF;
-    font-family: 'Outfit', sans-serif;
+    background: #EFF6FF;
+    color: #1D4ED8; /* Royal Blue */
     font-weight: 700;
-    font-size: 12px;
-    padding: 4px 12px;
+    font-size: 13px;
+    padding: 6px 14px;
     border-radius: 9999px;
-    letter-spacing: 0.02em;
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    border: 1px solid #BFDBFE;
     display: inline-block;
 }
-
 .badge-genre {
     display: inline-block;
-    padding: 3px 10px;
+    padding: 4px 12px;
     border-radius: 6px;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
-    margin-right: 6px;
-    background: rgba(99, 102, 241, 0.12);
-    color: #93C5FD;
-    border: 1px solid rgba(99, 102, 241, 0.2);
+    margin-right: 8px;
+    background: #F1F5F9;
+    color: #475569;
+    border: 1px solid #E2E8F0;
 }
 
-.subscore-pill {
-    font-size: 12px;
-    color: #94A3B8;
-    background: rgba(15, 23, 42, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    padding: 4px 10px;
-    border-radius: 8px;
+/* --- Stats Cards --- */
+.stat-card {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 16px;
+    padding: 24px;
+    text-align: center;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
+}
+.stat-value {
+    font-size: 32px;
+    font-weight: 800;
+    color: #0F172A;
+    margin-bottom: 4px;
+}
+.stat-label {
+    font-size: 14px;
+    color: #64748B;
+    font-weight: 500;
 }
 
 /* --- Streamlit Buttons Fix --- */
 .stButton > button {
-    font-family: 'Outfit', sans-serif !important;
+    font-family: 'Inter', system-ui, sans-serif !important;
     font-weight: 600 !important;
-    border-radius: 12px !important;
-    padding: 8px 18px !important;
+    border-radius: 8px !important;
+    padding: 10px 20px !important;
     transition: all 0.2s ease !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    font-size: 13px !important;
+    font-size: 14px !important;
     height: auto !important;
 }
-
 .stButton > button[kind="primary"] {
-    background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%) !important;
+    background: #2563EB !important; /* Royal Blue Primary */
     color: #FFFFFF !important;
     border: none !important;
-    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35) !important;
+    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2) !important;
 }
-
 .stButton > button[kind="primary"]:hover {
-    transform: translateY(-1px) !important;
-    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5) !important;
+    background: #1D4ED8 !important; /* Darker blue hover */
+    box-shadow: 0 6px 8px -1px rgba(37, 99, 235, 0.3) !important;
 }
-
 .stButton > button[kind="secondary"] {
-    background: rgba(30, 41, 59, 0.6) !important;
-    color: #E2E8F0 !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    background: #FFFFFF !important;
+    color: #334155 !important;
+    border: 1px solid #CBD5E1 !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
 }
-
 .stButton > button[kind="secondary"]:hover {
-    background: rgba(51, 65, 85, 0.8) !important;
-    border-color: rgba(255, 255, 255, 0.2) !important;
-}
-
-/* --- Sliders Fix (Prevents Floating Away) --- */
-.stSlider {
-    padding-top: 0rem !important;
-    padding-bottom: 0.5rem !important;
-}
-
-.stSlider [data-baseweb="slider"] {
-    color: #6366F1 !important;
+    background: #F8FAFC !important;
+    border-color: #94A3B8 !important;
 }
 
 /* --- Form Inputs & Selectors --- */
 .stTextInput > div > div > input,
 .stSelectbox > div > div {
-    background-color: rgba(15, 23, 42, 0.75) !important;
-    color: #F8FAFC !important;
-    border: 1px solid rgba(255, 255, 255, 0.12) !important;
-    border-radius: 12px !important;
-    padding: 10px 14px !important;
-    font-size: 14px !important;
+    background-color: #FFFFFF !important;
+    color: #0F172A !important;
+    border: 1px solid #CBD5E1 !important;
+    border-radius: 8px !important;
+    padding: 12px 16px !important;
+    font-size: 15px !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02) !important;
 }
-
 .stTextInput > div > div > input:focus,
 .stSelectbox > div > div:focus {
-    border-color: #6366F1 !important;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2) !important;
+    border-color: #2563EB !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2) !important;
 }
 
 /* --- Modern Tabs Navigation --- */
 .stTabs [data-baseweb="tab-list"] {
-    background: rgba(15, 23, 42, 0.6) !important;
-    padding: 6px !important;
-    border-radius: 16px !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
-    gap: 6px !important;
-    margin-bottom: 20px !important;
+    background: #FFFFFF !important;
+    padding: 8px !important;
+    border-radius: 12px !important;
+    border: 1px solid #E2E8F0 !important;
+    gap: 8px !important;
+    margin-bottom: 24px !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important;
 }
-
 .stTabs [data-baseweb="tab"] {
-    font-family: 'Outfit', sans-serif !important;
+    font-family: 'Inter', system-ui, sans-serif !important;
     font-weight: 600 !important;
-    color: #94A3B8 !important;
-    border-radius: 10px !important;
-    padding: 8px 18px !important;
+    color: #64748B !important;
+    border-radius: 8px !important;
+    padding: 10px 20px !important;
     border: none !important;
     background: transparent !important;
 }
-
 .stTabs [aria-selected="true"] {
-    background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%) !important;
+    background: #2563EB !important;
     color: #FFFFFF !important;
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3) !important;
+    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2) !important;
+}
+
+/* Footer */
+.footer-container {
+    text-align: center;
+    padding-top: 40px;
+    color: #94A3B8;
+    font-size: 14px;
+}
+
+
+
+
+
+
+/* Pro Header / Navbar */
+.brand-gradient {
+    background: linear-gradient(135deg, #818CF8 0%, #C084FC 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+}
+.navbar-glass {
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 16px 32px;
+    margin-bottom: 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 10px 30px -10px rgba(0,0,0,0.6);
+}
+
+/* Pro Footer */
+.footer-pro {
+    margin-top: 80px;
+    padding: 40px 20px 24px 20px;
+    background: linear-gradient(180deg, transparent 0%, rgba(11, 15, 25, 0.9) 100%);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    border-radius: 16px;
+}
+.footer-links {
+    margin: 20px 0;
+    color: #94A3B8;
+    font-size: 14px;
+    font-weight: 500;
+}
+.footer-links span {
+    margin: 0 12px;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+.footer-links span:hover {
+    color: #818CF8;
+}
+.footer-bottom {
+    color: #475569;
+    font-size: 13px;
+    line-height: 1.6;
 }
